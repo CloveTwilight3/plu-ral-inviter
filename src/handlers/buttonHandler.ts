@@ -32,7 +32,21 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
   }
 
   const { user_id: userId, requested_roles: rolesJson } = pendingRequest;
-  const requestedRoles = JSON.parse(rolesJson);
+  
+  // Parse requested roles with error handling
+  let requestedRoles;
+  try {
+    console.log('Raw roles JSON:', rolesJson);
+    requestedRoles = JSON.parse(rolesJson);
+  } catch (error) {
+    console.error('Error parsing requested roles JSON:', error);
+    console.error('Raw JSON string:', rolesJson);
+    await interaction.reply({
+      content: '❌ Error processing role data. Please contact an administrator.',
+      ephemeral: true
+    });
+    return;
+  }
 
   if (isApproval) {
     // Try to find the proxy user in the guild

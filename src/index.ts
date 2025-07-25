@@ -48,34 +48,47 @@ client.once('ready', async () => {
 });
 
 client.on('interactionCreate', async interaction => {
-  if (interaction.isChatInputCommand()) {
-    const command = commands.get(interaction.commandName);
-    if (!command) return;
+  try {
+    if (interaction.isChatInputCommand()) {
+      const command = commands.get(interaction.commandName);
+      if (!command) return;
 
-    try {
-      await command.execute(interaction);
-    } catch (error) {
-      console.error('Error executing command:', error);
-      
-      const errorMessage = {
-        content: 'There was an error while executing this command!',
-        ephemeral: true
-      };
-      
-      if (interaction.replied || interaction.deferred) {
-        await interaction.followUp(errorMessage);
-      } else {
-        await interaction.reply(errorMessage);
+      try {
+        await command.execute(interaction);
+      } catch (error) {
+        console.error('Error executing command:', error);
+        
+        const errorMessage = {
+          content: 'There was an error while executing this command!',
+          ephemeral: true
+        };
+        
+        if (interaction.replied || interaction.deferred) {
+          await interaction.followUp(errorMessage);
+        } else {
+          await interaction.reply(errorMessage);
+        }
       }
+    } else if (interaction.isButton()) {
+      await handleButtonInteraction(interaction);
     }
-  } else if (interaction.isButton()) {
-    await handleButtonInteraction(interaction);
+  } catch (error) {
+    console.error('Unhandled interaction error:', error);
   }
 });
 
 // Handle member leaving - remove their proxies
 client.on('guildMemberRemove', async member => {
-  await handleMemberLeave(member);
+  try {
+    await handleMemberLeave(member);
+  } catch (error) {
+    console.error('Error handling member leave:', error);
+  }
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (error) => {
+  console.error('Unhandled promise rejection:', error);
 });
 
 client.login(process.env.DISCORD_TOKEN);
