@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import { database } from './database/database.js';
 import { handleButtonInteraction } from './handlers/buttonHandler.js';
 import { handleMemberLeave } from './handlers/memberLeaveHandler.js';
-import { data as inviterCommandData, execute as inviterCommandExecute } from './commands/inviter.js';
+import * as inviterCommand from './commands/inviter.js';
 
 dotenv.config();
 
@@ -16,7 +16,7 @@ const client = new Client({
 
 // Command collection
 const commands = new Collection();
-commands.set(inviterCommandData.name, { data: inviterCommandData, execute: inviterCommandExecute });
+commands.set(inviterCommand.data.name, inviterCommand);
 
 client.once('ready', async () => {
   console.log(`Ready! Logged in as ${client.user?.tag}`);
@@ -32,7 +32,7 @@ client.once('ready', async () => {
     
     await rest.put(
       Routes.applicationCommands(process.env.CLIENT_ID!),
-      { body: [inviterCommandData.toJSON()] },
+      { body: [inviterCommand.data.toJSON()] },
     );
     
     console.log('Successfully reloaded application (/) commands.');

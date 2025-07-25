@@ -49,7 +49,7 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
 
     try {
       // Assign required roles first
-      const rolesToAdd = [...ROLES.required];
+      const rolesToAdd: string[] = [...ROLES.required];
 
       // Add requested roles with proper type checking
       if (requestedRoles.color && typeof requestedRoles.color === 'string' && requestedRoles.color in ROLES.colors) {

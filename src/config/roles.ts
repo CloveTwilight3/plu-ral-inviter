@@ -63,4 +63,4 @@ export const ROLES = {
     '1263564926178427036'  // Reddit Mod
   ],
   mod: '1237073505518882890'
-} as const;
+};
