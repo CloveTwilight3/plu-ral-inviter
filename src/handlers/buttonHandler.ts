@@ -13,7 +13,7 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
       !member?.roles.cache.has(ROLES.mod)) {
     await interaction.reply({
       content: 'You do not have permission to use this button.',
-      ephemeral: true
+      flags: 64 // ephemeral flag
     });
     return;
   }
@@ -26,24 +26,32 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
   if (!pendingRequest) {
     await interaction.reply({
       content: 'This request is no longer valid or has already been processed.',
-      ephemeral: true
+      flags: 64 // ephemeral flag
     });
     return;
   }
 
-  const { user_id: userId, requested_roles: rolesJson } = pendingRequest;
+  const { user_id: userId, requested_roles: rolesData } = pendingRequest;
   
-  // Parse requested roles with error handling
+  // Handle roles data - it might already be parsed by MySQL
   let requestedRoles;
   try {
-    console.log('Raw roles JSON:', rolesJson);
-    requestedRoles = JSON.parse(rolesJson);
+    console.log('Raw roles data:', rolesData);
+    console.log('Type of rolesData:', typeof rolesData);
+    
+    if (typeof rolesData === 'string') {
+      requestedRoles = JSON.parse(rolesData);
+    } else {
+      // Already an object
+      requestedRoles = rolesData;
+    }
+    
+    console.log('Parsed roles:', requestedRoles);
   } catch (error) {
-    console.error('Error parsing requested roles JSON:', error);
-    console.error('Raw JSON string:', rolesJson);
+    console.error('Error processing requested roles:', error);
     await interaction.reply({
       content: '❌ Error processing role data. Please contact an administrator.',
-      ephemeral: true
+      flags: 64 // ephemeral flag
     });
     return;
   }
@@ -56,7 +64,7 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
     if (!proxyMember) {
       await interaction.reply({
         content: `❌ Could not find proxy user with ID ${proxyId}. Make sure they have been added to the server first.`,
-        ephemeral: true
+        flags: 64 // ephemeral flag
       });
       return;
     }
@@ -82,6 +90,8 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
           rolesToAdd.push(ROLES.access[accessType as keyof typeof ROLES.access]);
         }
       }
+
+      console.log('Roles to add:', rolesToAdd);
 
       // Assign roles
       await proxyMember.roles.add(rolesToAdd);
@@ -112,7 +122,7 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
       console.error('Error assigning roles:', error);
       await interaction.reply({
         content: '❌ An error occurred while assigning roles. Please try again or assign them manually.',
-        ephemeral: true
+        flags: 64 // ephemeral flag
       });
       return;
     }
