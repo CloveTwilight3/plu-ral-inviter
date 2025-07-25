@@ -57,13 +57,33 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
   }
 
   if (isApproval) {
-    // Try to find the proxy user in the guild
+    // Try to find the proxy user (bot) in the guild
     const guild = interaction.guild!;
-    const proxyMember = guild.members.cache.get(proxyId);
+    let proxyMember = guild.members.cache.get(proxyId);
+    
+    // If not in cache, try to fetch it
+    if (!proxyMember) {
+      try {
+        console.log(`Attempting to fetch bot member ${proxyId}`);
+        proxyMember = await guild.members.fetch(proxyId);
+        console.log(`Successfully fetched bot member: ${proxyMember.user.username}`);
+      } catch (error) {
+        console.error(`Failed to fetch bot member ${proxyId}:`, error);
+      }
+    }
     
     if (!proxyMember) {
       await interaction.reply({
-        content: `❌ Could not find proxy user with ID ${proxyId}. Make sure they have been added to the server first.`,
+        content: `❌ Could not find proxy bot with ID ${proxyId}. Please make sure:\n\n1. The bot has been invited to the server using the OAuth URL\n2. The bot has successfully joined the server\n3. Wait a few moments and try again\n\n**Note:** This is a bot user, not a regular user. It must be properly invited through Discord's OAuth system.`,
+        flags: 64 // ephemeral flag
+      });
+      return;
+    }
+
+    // Verify it's actually a bot
+    if (!proxyMember.user.bot) {
+      await interaction.reply({
+        content: `❌ User ${proxyMember.user.username} (${proxyId}) is not a bot. Proxy users must be bots.`,
         flags: 64 // ephemeral flag
       });
       return;
@@ -91,10 +111,11 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
         }
       }
 
-      console.log('Roles to add:', rolesToAdd);
+      console.log('Roles to add to bot:', rolesToAdd);
 
-      // Assign roles
+      // Assign roles to the bot
       await proxyMember.roles.add(rolesToAdd);
+      console.log(`Successfully assigned roles to bot: ${proxyMember.user.username}`);
 
       // Save user-proxy relationship
       await database.saveUserProxy(userId, proxyId);
@@ -103,7 +124,10 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
       const approvedEmbed = EmbedBuilder.from(interaction.message.embeds[0])
         .setColor(0x57F287)
         .setTitle('✅ Userproxy Request Approved')
-        .addFields({ name: 'Approved by', value: `<@${interaction.user.id}>`, inline: true });
+        .addFields(
+          { name: 'Approved by', value: `<@${interaction.user.id}>`, inline: true },
+          { name: 'Bot User', value: `${proxyMember.user.username}#${proxyMember.user.discriminator}`, inline: true }
+        );
 
       await interaction.update({
         embeds: [approvedEmbed],
@@ -113,15 +137,15 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
       // Notify the original requester
       try {
         const requester = await interaction.client.users.fetch(userId);
-        await requester.send(`✅ Your userproxy request for ${proxyMember.user.username} has been approved and roles have been assigned!`);
+        await requester.send(`✅ Your userproxy request for bot **${proxyMember.user.username}** has been approved and roles have been assigned!`);
       } catch (error) {
         console.log('Could not DM user about approval');
       }
 
     } catch (error) {
-      console.error('Error assigning roles:', error);
+      console.error('Error assigning roles to bot:', error);
       await interaction.reply({
-        content: '❌ An error occurred while assigning roles. Please try again or assign them manually.',
+        content: `❌ An error occurred while assigning roles to the bot. This might be due to:\n\n1. Permission issues (bot hierarchy)\n2. Invalid role IDs\n3. Bot-specific restrictions\n\nError: ${error}\n\nPlease assign roles manually.`,
         flags: 64 // ephemeral flag
       });
       return;

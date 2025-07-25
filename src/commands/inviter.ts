@@ -152,7 +152,8 @@ async function handleUserproxyCommand(interaction: ChatInputCommandInteraction) 
     .addFields(
       { name: 'Requested by', value: `<@${interaction.user.id}>`, inline: true },
       { name: 'Proxy ID', value: proxyId, inline: true },
-      { name: 'OAuth URL', value: `[Click to invite proxy](${oauthUrl})` }
+      { name: 'OAuth URL', value: `[Click to invite proxy](${oauthUrl})` },
+      { name: '⚠️ Important', value: '**The bot must be invited to the server first before approval!**', inline: false }
     )
     .setTimestamp();
 
