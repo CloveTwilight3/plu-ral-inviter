@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, REST, Routes, Collection } from 'discord.js';
+import { Client, GatewayIntentBits, REST, Routes, Collection, ChatInputCommandInteraction } from 'discord.js';
 import dotenv from 'dotenv';
 import { database } from './database/database.js';
 import { handleButtonInteraction } from './handlers/buttonHandler.js';
@@ -6,6 +6,12 @@ import { handleMemberLeave } from './handlers/memberLeaveHandler.js';
 import * as inviterCommand from './commands/inviter.js';
 
 dotenv.config();
+
+// Define command interface
+interface Command {
+  data: any;
+  execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
+}
 
 const client = new Client({
   intents: [
@@ -15,8 +21,8 @@ const client = new Client({
 });
 
 // Command collection
-const commands = new Collection();
-commands.set(inviterCommand.data.name, inviterCommand);
+const commands = new Collection<string, Command>();
+commands.set(inviterCommand.data.name, inviterCommand as Command);
 
 client.once('ready', async () => {
   console.log(`Ready! Logged in as ${client.user?.tag}`);
