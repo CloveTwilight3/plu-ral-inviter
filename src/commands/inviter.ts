@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits, GuildMember, Channel } from 'discord.js';
 import { ROLES } from '../config/roles.js';
 import { database } from '../database/database.js';
 
@@ -114,7 +114,7 @@ async function handleUserproxyCommand(interaction: ChatInputCommandInteraction) 
   }
 
   const modChannel = interaction.guild?.channels.cache.get(modChannelId);
-  if (!modChannel?.isTextBased()) {
+  if (!modChannel || !('send' in modChannel)) {
     await interaction.reply({
       content: 'The configured mod channel is invalid. Please ask a moderator to reconfigure it.',
       ephemeral: true
@@ -123,7 +123,7 @@ async function handleUserproxyCommand(interaction: ChatInputCommandInteraction) 
   }
 
   // Collect requested roles
-  const requestedRoles: any = {};
+  const requestedRoles: Record<string, string | boolean> = {};
   
   const color = interaction.options.getString('color');
   const age = interaction.options.getString('age');
@@ -202,8 +202,10 @@ async function handleUserproxyCommand(interaction: ChatInputCommandInteraction) 
 
 async function handleSetchannelCommand(interaction: ChatInputCommandInteraction) {
   // Check if user has mod role
+  const member = interaction.member as GuildMember;
+  
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) && 
-      !interaction.member?.roles.cache.has(ROLES.mod)) {
+      !member?.roles.cache.has(ROLES.mod)) {
     await interaction.reply({
       content: 'You do not have permission to use this command.',
       ephemeral: true
@@ -213,7 +215,7 @@ async function handleSetchannelCommand(interaction: ChatInputCommandInteraction)
 
   const channel = interaction.options.getChannel('channel', true);
   
-  if (!channel.isTextBased()) {
+  if (!('send' in channel)) {
     await interaction.reply({
       content: 'Please select a text channel.',
       ephemeral: true

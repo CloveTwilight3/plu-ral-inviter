@@ -1,4 +1,4 @@
-import { ButtonInteraction, EmbedBuilder } from 'discord.js';
+import { ButtonInteraction, EmbedBuilder, GuildMember } from 'discord.js';
 import { ROLES } from '../config/roles.js';
 import { database } from '../database/database.js';
 
@@ -8,8 +8,9 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
   }
 
   // Check if user has mod role
+  const member = interaction.member as GuildMember;
   if (!interaction.memberPermissions?.has('Administrator') && 
-      !interaction.member?.roles.cache.has(ROLES.mod)) {
+      !member?.roles.cache.has(ROLES.mod)) {
     await interaction.reply({
       content: 'You do not have permission to use this button.',
       ephemeral: true
@@ -50,20 +51,20 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
       // Assign required roles first
       const rolesToAdd = [...ROLES.required];
 
-      // Add requested roles
-      if (requestedRoles.color && ROLES.colors[requestedRoles.color]) {
-        rolesToAdd.push(ROLES.colors[requestedRoles.color]);
+      // Add requested roles with proper type checking
+      if (requestedRoles.color && typeof requestedRoles.color === 'string' && requestedRoles.color in ROLES.colors) {
+        rolesToAdd.push(ROLES.colors[requestedRoles.color as keyof typeof ROLES.colors]);
       }
-      if (requestedRoles.age && ROLES.ages[requestedRoles.age]) {
-        rolesToAdd.push(ROLES.ages[requestedRoles.age]);
+      if (requestedRoles.age && typeof requestedRoles.age === 'string' && requestedRoles.age in ROLES.ages) {
+        rolesToAdd.push(ROLES.ages[requestedRoles.age as keyof typeof ROLES.ages]);
       }
-      if (requestedRoles.pronouns && ROLES.pronouns[requestedRoles.pronouns]) {
-        rolesToAdd.push(ROLES.pronouns[requestedRoles.pronouns]);
+      if (requestedRoles.pronouns && typeof requestedRoles.pronouns === 'string' && requestedRoles.pronouns in ROLES.pronouns) {
+        rolesToAdd.push(ROLES.pronouns[requestedRoles.pronouns as keyof typeof ROLES.pronouns]);
       }
 
       // Add access roles
       for (const [accessType, hasAccess] of Object.entries(requestedRoles)) {
-        if (hasAccess && ROLES.access[accessType as keyof typeof ROLES.access]) {
+        if (hasAccess && accessType in ROLES.access) {
           rolesToAdd.push(ROLES.access[accessType as keyof typeof ROLES.access]);
         }
       }

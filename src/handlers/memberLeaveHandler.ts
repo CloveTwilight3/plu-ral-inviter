@@ -1,19 +1,27 @@
-import { GuildMember, EmbedBuilder } from 'discord.js';
+import { GuildMember, PartialGuildMember, EmbedBuilder } from 'discord.js';
 import { database } from '../database/database.js';
 
-export async function handleMemberLeave(member: GuildMember) {
+export async function handleMemberLeave(member: GuildMember | PartialGuildMember) {
   try {
-    console.log(`Member left: ${member.user.username} (${member.id})`);
+    // If it's a partial member, try to fetch the full member data
+    const fullMember = member.partial ? await member.fetch().catch(() => null) : member;
     
-    // Get all proxies associated with this user
-    const userProxies = await database.getUserProxies(member.id);
-    
-    if (userProxies.length === 0) {
-      console.log(`No proxies found for user ${member.id}`);
+    if (!fullMember) {
+      console.log('Could not fetch full member data for leave event');
       return;
     }
 
-    console.log(`Found ${userProxies.length} proxies for user ${member.id}`);
+    console.log(`Member left: ${fullMember.user.username} (${fullMember.id})`);
+    
+    // Get all proxies associated with this user
+    const userProxies = await database.getUserProxies(fullMember.id);
+    
+    if (userProxies.length === 0) {
+      console.log(`No proxies found for user ${fullMember.id}`);
+      return;
+    }
+
+    console.log(`Found ${userProxies.length} proxies for user ${fullMember.id}`);
     
     const removedProxies: string[] = [];
     const failedRemovals: string[] = [];
@@ -21,10 +29,10 @@ export async function handleMemberLeave(member: GuildMember) {
     // Remove each proxy from the server
     for (const proxy of userProxies) {
       try {
-        const proxyMember = member.guild.members.cache.get(proxy.proxy_id);
+        const proxyMember = fullMember.guild.members.cache.get(proxy.proxy_id);
         
         if (proxyMember) {
-          await proxyMember.kick(`Associated user ${member.user.username} left the server`);
+          await proxyMember.kick(`Associated user ${fullMember.user.username} left the server`);
           removedProxies.push(`${proxyMember.user.username} (${proxy.proxy_id})`);
           console.log(`Removed proxy: ${proxyMember.user.username} (${proxy.proxy_id})`);
         } else {
@@ -39,20 +47,20 @@ export async function handleMemberLeave(member: GuildMember) {
     }
 
     // Clean up database entries
-    await database.removeUserProxies(member.id);
-    console.log(`Cleaned up database entries for user ${member.id}`);
+    await database.removeUserProxies(fullMember.id);
+    console.log(`Cleaned up database entries for user ${fullMember.id}`);
 
     // Log to mod channel if configured
-    const modChannelId = await database.getModChannel(member.guild.id);
+    const modChannelId = await database.getModChannel(fullMember.guild.id);
     if (modChannelId) {
-      const modChannel = member.guild.channels.cache.get(modChannelId);
+      const modChannel = fullMember.guild.channels.cache.get(modChannelId);
       
-      if (modChannel?.isTextBased()) {
+      if (modChannel && 'send' in modChannel) {
         const embed = new EmbedBuilder()
           .setTitle('🚪 User Left - Proxies Removed')
           .setColor(0xED4245)
           .addFields(
-            { name: 'User', value: `${member.user.username} (${member.id})`, inline: true },
+            { name: 'User', value: `${fullMember.user.username} (${fullMember.id})`, inline: true },
             { name: 'Proxies Removed', value: removedProxies.length > 0 ? removedProxies.join('\n') : 'None', inline: false }
           )
           .setTimestamp();
